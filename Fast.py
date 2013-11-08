@@ -26,7 +26,7 @@ I_o = 100.0
 
 Jsc = 0.0                           #AM 1.5 Current (mA/cm^2)
 
-V_th = 0.0256796821*1000
+V_th = 0.0256796821 * 1000
 
 w = [J_o, r, Rsh, n, 0.0, 0.0,
      0.0]         #w[J_o, Series Resistance, Shunt Resistance, Diode Quality, Node[X-1], Node[X+1], Node[above]]
@@ -42,10 +42,8 @@ Molly[0] = Input
 
 count = 0
 
-#F = lambda V: (w[4] + w[5] - 2 * V) / R + w[0] * (-1 + math.exp(((V - w[6]) - w[1] * ((w[4] + w[5] - 2 * V) / R) / 1000.0) / (0.0256796821 * w[3]))) - (V - w[6]) / w[2]
 G = lambda V: (w[4] + w[5] - V) / R - w[0] * (-1 + math.exp(((V - w[6]) - w[1] * ((w[4] + w[5] - V) / R)) / (V_th * w[3]))) - (V - w[6]) / w[2]
 
-#L = lambda V: (w[4] + w[5] - 2 * V) / R_t + w[0] * (-1 + math.exp(((w[6] - V) - w[1] * ((w[4] + w[5] - 2 * V) / R) / 1000.0) / (0.0256796821 * w[3]))) + (w[6] - V) / w[2]
 K = lambda V: (w[4] + w[5] - V) / R_t + w[0] * (-1 + math.exp(((w[6] - V) - w[1] * ((w[4] + w[5] - V) / R)) / (V_th * w[3]))) + (w[6] - V) / w[2]
 
 def F(left, right, top):
@@ -54,16 +52,11 @@ def F(left, right, top):
 def L(left, right, bottom):
     return lambda V: (left + right - 2 * V) / R_t + J_o * (-1 + math.exp(((bottom - V) - r * ((left + right - 2 * V) / R)) / (V_th * n))) + (bottom - V) / Rsh
 
+def G(left, right, top):
+    return lambda V: (left + right - V) / R - J_o * (-1 + math.exp(((V - top) - r * ((left + right - V) / R)) / (V_th * n))) - (V - top) / Rsh
 
-
-#def VoltageM(X):
-#    Molly[X] = optimize.fsolve(F(Molly[X - 1], Molly[X + 1], TCO[X - 1]), Molly[X])[0]
-#    return Molly[X]
-
-
-#def VoltageT(X):
-#    TCO[X] = optimize.fsolve(L(TCO[X - 1], TCO[X + 1], Molly[X + 1]), TCO[X])[0]
-#    return TCO[X]
+def K(left, right, bottom):
+    return lambda V: (left + right - V) / R_t + J_o * (-1 + math.exp(((bottom - V) - r * ((left + right - V) / R)) / (V_th * n))) + (bottom - V) / Rsh
 
 
 counter = 0
@@ -74,8 +67,11 @@ while counter < M:
         Molly[count] = optimize.fsolve(F(Molly[count - 1], Molly[count + 1], TCO[count - 1]), Molly[count])[0]
         TCO[count] = optimize.fsolve(L(TCO[count - 1], TCO[count + 1], Molly[count + 1]), TCO[count])[0]
         count += 1
-    Molly[A - 1] = optimize.fsolve(G, Molly[A - 1])[0]
-    TCO[0] = optimize.fsolve(K, TCO[0])[0]
+
+
+
+    Molly[A - 1] = optimize.fsolve(G(Molly[A-2], 0, TCO[A-2]), Molly[A - 1])[0]
+    TCO[0] = optimize.fsolve(K(0, TCO[1], Molly[1]), TCO[0])[0]
 
     counter += 1
 
